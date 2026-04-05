@@ -179,7 +179,7 @@ const requestDevelopmentCoachLayer = async (user: NutritionPlanRequest, plan: De
       Authorization: `Bearer ${developmentApiKey}`,
     },
     body: JSON.stringify({
-      model: 'gpt-4.1-mini',
+      model: 'gpt-4o-mini',
       response_format: { type: 'json_object' },
       messages: [
         {
@@ -201,7 +201,7 @@ const requestDevelopmentCoachLayer = async (user: NutritionPlanRequest, plan: De
 
   const data = (await response.json()) as OpenAIResponse;
   const text = data.choices?.[0]?.message?.content || '';
-  return parseCoachResponse(text, 'openai', 'gpt-4.1-mini-client-dev');
+  return parseCoachResponse(text, 'openai', 'gpt-4o-mini-client-dev');
 };
 
 export const aiCoachService = {

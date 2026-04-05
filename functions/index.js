@@ -127,7 +127,7 @@ const requestOpenAI = async (prompt) => {
 
   const client = new OpenAI({ apiKey });
   const response = await client.chat.completions.create({
-    model: 'gpt-4.1-mini',
+    model: 'gpt-4o-mini',
     response_format: { type: 'json_object' },
     messages: [
       { role: 'system', content: 'You are an elite AI nutrition coach. Return valid JSON only.' },
@@ -137,14 +137,14 @@ const requestOpenAI = async (prompt) => {
   });
 
   const text = response.choices?.[0]?.message?.content || '';
-  return parseCoachResponse(text, 'openai', 'gpt-4.1-mini');
+  return parseCoachResponse(text, 'openai', 'gpt-4o-mini');
 };
 
 const requestGemini = async (prompt) => {
   const apiKey = geminiApiKey.value();
   if (!apiKey) return null;
 
-  const model = 'gemini-2.5-flash';
+  const model = 'gemini-1.5-flash';
   const response = await fetchWithRetry(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
     {
