@@ -31,7 +31,13 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
+.env.*
 .env*.local
+.vercel
+
+# accidental nested Firebase init output
+functions/functions/
 
 # typescript
 *.tsbuildinfo
