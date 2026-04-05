@@ -17,46 +17,40 @@ const parseBody = (req) => {
   return req.body;
 };
 
-let tokenCache = {
-  token: null,
-  expiresAt: 0,
-};
-
-const getAccessToken = async () => {
-  if (tokenCache.token && Date.now() < tokenCache.expiresAt) {
-    return tokenCache.token;
-  }
-
-  const clientId = process.env.FATSECRET_CLIENT_ID;
-  const clientSecret = process.env.FATSECRET_CLIENT_SECRET;
-
-  if (!clientId || !clientSecret) {
-    throw new Error('FatSecret environment variables are missing.');
-  }
-
-  const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
-  const response = await fetch('https://oauth.fatsecret.com/connect/token', {
-    method: 'POST',
-    headers: {
-      Authorization: `Basic ${credentials}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: 'grant_type=client_credentials&scope=basic',
-  });
-
-  const body = await response.text();
-  if (!response.ok) {
-    throw new Error(`FatSecret auth failed: ${response.status} ${body}`);
-  }
-
-  const payload = JSON.parse(body);
-  tokenCache = {
-    token: payload.access_token,
-    expiresAt: Date.now() + Math.max((Number(payload.expires_in) - 300) * 1000, 60_000),
+const buildDescription = (food) => {
+  const nutrients = Array.isArray(food.foodNutrients) ? food.foodNutrients : [];
+  const findNutrient = (...names) => {
+    const match = nutrients.find((item) => names.includes(item.nutrientName));
+    return match?.value;
   };
 
-  return tokenCache.token;
+  const calories = findNutrient('Energy') ?? findNutrient('Energy (Atwater General Factors)');
+  const protein = findNutrient('Protein');
+  const carbs = findNutrient('Carbohydrate, by difference');
+  const fat = findNutrient('Total lipid (fat)');
+
+  const servingParts = [];
+  if (food.servingSize) {
+    servingParts.push(`${food.servingSize} ${food.servingSizeUnit || 'g'}`);
+  }
+  if (food.householdServingFullText) {
+    servingParts.push(food.householdServingFullText);
+  }
+
+  const serving = servingParts[0] || 'Serving size unavailable';
+  const numberOrZero = (value) => (typeof value === 'number' ? value : 0);
+
+  return `${serving} - Calories: ${Math.round(numberOrZero(calories))}kcal | Fat: ${numberOrZero(fat).toFixed(1)}g | Carbs: ${numberOrZero(carbs).toFixed(1)}g | Protein: ${numberOrZero(protein).toFixed(1)}g`;
 };
+
+const mapFood = (food) => ({
+  food_id: String(food.fdcId),
+  food_name: food.description,
+  food_description: buildDescription(food),
+  brand_name: food.brandOwner || food.brandName || undefined,
+  food_type: food.dataType || 'Generic',
+  food_url: '',
+});
 
 module.exports = async (req, res) => {
   setCors(res);
@@ -75,44 +69,43 @@ module.exports = async (req, res) => {
     const { query = '', maxResults = 10 } = parseBody(req);
     const normalizedQuery = String(query).trim();
     const limitedMaxResults = Math.min(Math.max(Number(maxResults) || 10, 1), 20);
+    const apiKey = process.env.USDA_API_KEY;
+
+    if (!apiKey) {
+      res.status(500).json({ message: 'USDA_API_KEY is missing.' });
+      return;
+    }
 
     if (normalizedQuery.length < 3) {
       res.status(400).json({ message: 'Query must be at least 3 characters long.' });
       return;
     }
 
-    const token = await getAccessToken();
-    const params = new URLSearchParams({
-      method: 'foods.search',
-      search_expression: normalizedQuery,
-      format: 'json',
-      max_results: String(limitedMaxResults),
-    });
-
-    const response = await fetch(`https://platform.fatsecret.com/rest/server.api?${params.toString()}`, {
-      method: 'GET',
+    const response = await fetch(`https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${encodeURIComponent(apiKey)}`, {
+      method: 'POST',
       headers: {
-        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
         Accept: 'application/json',
       },
+      body: JSON.stringify({
+        query: normalizedQuery,
+        pageSize: limitedMaxResults,
+        dataType: ['Branded', 'Foundation', 'SR Legacy'],
+      }),
     });
 
     const body = await response.text();
     if (!response.ok) {
-      res.status(502).json({ message: `FatSecret search failed: ${response.status} ${body}` });
+      res.status(502).json({ message: `USDA search failed: ${response.status} ${body}` });
       return;
     }
 
     const payload = JSON.parse(body);
-    if (payload.error) {
-      res.status(502).json({
-        message: payload.error.message || 'FatSecret returned an error.',
-        code: payload.error.code,
-      });
-      return;
-    }
-
-    res.status(200).json(payload);
+    res.status(200).json({
+      foods: {
+        food: Array.isArray(payload.foods) ? payload.foods.map(mapFood) : [],
+      },
+    });
   } catch (error) {
     res.status(500).json({
       message: error instanceof Error ? error.message : 'Unknown server error.',
