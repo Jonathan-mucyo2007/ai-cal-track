@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View, useColorScheme } from 'react-native';
 import { tokenCache } from '../hooks/useTokenCache';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { isUserProfileComplete } from '../services/storageService';
+import { isUserAppReady, storageService } from '../services/storageService';
 import { Colors } from '../styles/colors';
 import { profileBootstrapService } from '../services/profileBootstrapService';
 import { DateProvider } from '../contexts/DateContext';
@@ -31,6 +31,7 @@ const InitialLayout = () => {
       const inAuthGroup = firstSegment === '(auth)';
       const inWelcome = currentPath === 'welcome';
       const inOnboarding = currentPath === 'onboarding';
+      const inScanAnalysis = currentPath === 'scan-food-analysis';
 
       if (!isSignedIn) {
         if (!inWelcome && !inAuthGroup) {
@@ -41,10 +42,12 @@ const InitialLayout = () => {
       }
 
       if (isSignedIn && user) {
+        const cachedProfile = await storageService.loadUserProfile();
         const { profile } = await profileBootstrapService.resolveProfile(user);
         if (!isActive) return;
 
-        const needsOnboarding = !isUserProfileComplete(profile);
+        const effectiveProfile = isUserAppReady(profile) ? profile : cachedProfile;
+        const needsOnboarding = !isUserAppReady(effectiveProfile);
 
         if (needsOnboarding && !inOnboarding) {
           router.replace('/onboarding');
@@ -52,7 +55,7 @@ const InitialLayout = () => {
           return;
         }
 
-        if (!needsOnboarding && (inAuthGroup || inWelcome || inOnboarding)) {
+        if (!needsOnboarding && (inAuthGroup || inWelcome || inOnboarding) && !inScanAnalysis) {
           router.replace('/');
         }
         setIsRoutingReady(true);
@@ -92,6 +95,12 @@ const InitialLayout = () => {
       <Stack.Screen name="manual-calorie-log" options={{ headerShown: false, animation: 'slide_from_right' }} />
       <Stack.Screen name="log-water" options={{ headerShown: false, animation: 'slide_from_bottom' }} />
       <Stack.Screen name="food-search" options={{ headerShown: false, animation: 'slide_from_bottom' }} />
+      <Stack.Screen name="update-weight" options={{ headerShown: false, animation: 'slide_from_right' }} />
+      <Stack.Screen name="scan-food-camera" options={{ headerShown: false, animation: 'slide_from_bottom' }} />
+      <Stack.Screen name="scan-food-analysis" options={{ headerShown: false, animation: 'slide_from_right' }} />
+      <Stack.Screen name="scan-food-insights" options={{ headerShown: false, animation: 'slide_from_right' }} />
+      <Stack.Screen name="scan-food-result" options={{ headerShown: false, animation: 'slide_from_right' }} />
+      <Stack.Screen name="log-food" options={{ headerShown: false, animation: 'slide_from_right' }} />
       <Stack.Screen name="onboarding" options={{ headerShown: false }} />
       <Stack.Screen name="welcome" options={{ headerShown: false }} />
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />

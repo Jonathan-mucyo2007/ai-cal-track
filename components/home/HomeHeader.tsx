@@ -20,7 +20,7 @@ export function HomeHeader({ offlineProfile, hasNotifications = false }: HomeHea
   const theme = Colors[colorScheme ?? 'light'];
   const [uploading, setUploading] = useState(false);
 
-  const displayName = user?.firstName || offlineProfile?.firstName || 'Guest';
+  const displayName = offlineProfile?.firstName || user?.firstName || 'Guest';
   const imageUrl = user?.imageUrl || null;
 
   const handlePickImage = async () => {

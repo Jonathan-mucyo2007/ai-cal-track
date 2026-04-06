@@ -12,6 +12,7 @@ export interface DailyLogSchema {
   logs: Array<{
     id: string;
     itemName: string;
+    servingSize?: string;
     calories: number;
     proteinGrams: number;
     carbsGrams: number;

@@ -6,6 +6,7 @@
     "node": "20"
   },
   "scripts": {
+    "lint": "node -e \"console.log('No functions lint configured')\"",
     "serve": "firebase emulators:start --only functions",
     "deploy": "firebase deploy --only functions"
   },

@@ -22,6 +22,8 @@ const sanitizeProfile = (profile: Partial<UserProfileCache>, user: ClerkLikeUser
   birthdate: profile.birthdate,
   height: profile.height,
   weight: profile.weight,
+  weightUpdatedAt: profile.weightUpdatedAt,
+  weightHistory: profile.weightHistory,
   onboardingCompleted: profile.onboardingCompleted,
   nutritionPlan: profile.nutritionPlan,
 });
@@ -55,17 +57,19 @@ export const profileBootstrapService = {
 
     const merged = sanitizeProfile(
       {
-        firstName: preferDefined(localProfile?.firstName, remoteProfile?.firstName),
-        lastName: preferDefined(localProfile?.lastName, remoteProfile?.lastName),
-        email: preferDefined(localProfile?.email, remoteProfile?.email),
-        gender: preferDefined(localProfile?.gender, remoteProfile?.gender),
-        goal: preferDefined(localProfile?.goal, remoteProfile?.goal),
-        workoutDays: preferDefined(localProfile?.workoutDays, remoteProfile?.workoutDays),
-        birthdate: preferDefined(localProfile?.birthdate, remoteProfile?.birthdate),
-        height: preferDefined(localProfile?.height, remoteProfile?.height),
-        weight: preferDefined(localProfile?.weight, remoteProfile?.weight),
-        onboardingCompleted: preferDefined(localProfile?.onboardingCompleted, remoteProfile?.onboardingCompleted),
-        nutritionPlan: preferDefined(localProfile?.nutritionPlan, remoteProfile?.nutritionPlan),
+        firstName: preferDefined(remoteProfile?.firstName, localProfile?.firstName),
+        lastName: preferDefined(remoteProfile?.lastName, localProfile?.lastName),
+        email: preferDefined(remoteProfile?.email, localProfile?.email),
+        gender: preferDefined(remoteProfile?.gender, localProfile?.gender),
+        goal: preferDefined(remoteProfile?.goal, localProfile?.goal),
+        workoutDays: preferDefined(remoteProfile?.workoutDays, localProfile?.workoutDays),
+        birthdate: preferDefined(remoteProfile?.birthdate, localProfile?.birthdate),
+        height: preferDefined(remoteProfile?.height, localProfile?.height),
+        weight: preferDefined(remoteProfile?.weight, localProfile?.weight),
+        weightUpdatedAt: preferDefined(remoteProfile?.weightUpdatedAt, localProfile?.weightUpdatedAt),
+        weightHistory: preferDefined(remoteProfile?.weightHistory, localProfile?.weightHistory),
+        onboardingCompleted: preferDefined(remoteProfile?.onboardingCompleted, localProfile?.onboardingCompleted),
+        nutritionPlan: preferDefined(remoteProfile?.nutritionPlan, localProfile?.nutritionPlan),
       },
       user
     );

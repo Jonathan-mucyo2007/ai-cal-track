@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, useColorScheme } from 'react-native';
+import { View, Text, StyleSheet, useColorScheme, ScrollView } from 'react-native';
 import { Colors } from '../../styles/colors';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
@@ -35,7 +35,12 @@ export const RecentActivity = ({ dailyLog }: Props) => {
           </Text>
         </View>
       ) : (
-        <View style={styles.listContainer}>
+        <ScrollView
+          style={styles.scrollArea}
+          contentContainerStyle={styles.listContainer}
+          nestedScrollEnabled
+          showsVerticalScrollIndicator={false}
+        >
           {combinedLogs.map((log, index) => {
              const isLast = index === combinedLogs.length - 1;
              if (log.type === 'exercise') {
@@ -56,7 +61,7 @@ export const RecentActivity = ({ dailyLog }: Props) => {
                          <Text style={[styles.exerciseName, { color: theme.text }]}>{log.itemName}</Text>
                          <View style={styles.exerciseStatsRow}>
                            <Ionicons name="flame" size={14} color="#FF4500" />
-                           <Text style={[styles.burnText, { color: '#FF4500' }]}>{log.calories} cals burned</Text>
+                           <Text style={[styles.burnText, { color: '#FF4500' }]}>{log.calories} kcal burned</Text>
                          </View>
                          {(log.intensity || log.duration) && (
                            <Text style={[styles.detailText, { color: theme.textSecondary }]}>
@@ -76,27 +81,42 @@ export const RecentActivity = ({ dailyLog }: Props) => {
              }
              
              return (
-              <View key={log.id} style={[styles.logItem, { borderBottomColor: isLast ? 'transparent' : theme.background, paddingBottom: isLast ? 0 : 16 }]}>
-                <View style={styles.logLeft}>
-                  <View style={[styles.smallIconCircle, { backgroundColor: theme.primary + '20' }]}>
-                    <Ionicons name="nutrition-outline" size={16} color={theme.primary} />
+              <View key={log.id} style={[styles.foodCard, { backgroundColor: theme.background, marginBottom: isLast ? 0 : 8 }]}>
+                <View style={styles.foodCardHeader}>
+                  <View style={styles.foodCardLeft}>
+                    <View style={[styles.foodIconCircle, { backgroundColor: theme.primary + '18' }]}>
+                      <Ionicons name="restaurant" size={24} color={theme.primary} />
+                    </View>
+                    <View style={styles.foodDetails}>
+                      <Text style={[styles.foodName, { color: theme.text }]} numberOfLines={1}>{log.itemName}</Text>
+                      <Text style={[styles.foodServing, { color: theme.textSecondary }]} numberOfLines={1}>
+                        {log.servingSize || '1 serving'}
+                      </Text>
+                    </View>
                   </View>
-                  <View>
-                    <Text style={[styles.logItemName, { color: theme.text }]}>{log.itemName}</Text>
-                    <Text style={[styles.logItemTime, { color: theme.textSecondary }]}>
-                      {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.logRight}>
-                  <Text style={[styles.logCalories, { color: theme.text }]}>
-                    +{log.calories} kcal
+                  <Text style={[styles.timestampText, { color: theme.textSecondary }]}>
+                    {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </Text>
+                </View>
+
+                <View style={styles.foodStatsRow}>
+                  <View style={[styles.foodStatPill, { backgroundColor: '#FFF7ED' }]}>
+                    <Ionicons name="flame" size={14} color="#F97316" />
+                    <Text style={[styles.foodStatText, { color: '#C2410C' }]}>{log.calories} kcal</Text>
+                  </View>
+                  <View style={[styles.foodStatPill, { backgroundColor: '#FEF2F2' }]}>
+                    <Ionicons name="barbell" size={14} color="#DC2626" />
+                    <Text style={[styles.foodStatText, { color: '#B91C1C' }]}>{log.proteinGrams}g protein</Text>
+                  </View>
+                  <View style={[styles.foodStatPill, { backgroundColor: '#EFF6FF' }]}>
+                    <Ionicons name="flash" size={14} color="#2563EB" />
+                    <Text style={[styles.foodStatText, { color: '#1D4ED8' }]}>{log.carbsGrams}g carbs</Text>
+                  </View>
                 </View>
               </View>
             )
           })}
-        </View>
+        </ScrollView>
       )}
     </Animated.View>
   );
@@ -146,39 +166,72 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     gap: 16,
+    paddingBottom: 4,
   },
-  logItem: {
+  scrollArea: {
+    maxHeight: 360,
+  },
+  foodCard: {
+    borderRadius: 22,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.05,
+    shadowRadius: 14,
+    elevation: 4,
+  },
+  foodCardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    borderBottomWidth: 1,
+    alignItems: 'flex-start',
+    marginBottom: 14,
+    gap: 10,
   },
-  logLeft: {
+  foodCardLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    flex: 1,
   },
-  smallIconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  foodIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  logItemName: {
-    fontSize: 15,
+  foodDetails: {
+    flex: 1,
+  },
+  foodName: {
+    fontSize: 16,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  foodServing: {
+    fontSize: 13,
     fontWeight: '600',
-    marginBottom: 2,
   },
-  logItemTime: {
+  timestampText: {
     fontSize: 12,
+    fontWeight: '600',
   },
-  logRight: {
-    alignItems: 'flex-end',
+  foodStatsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
   },
-  logCalories: {
-    fontSize: 15,
-    fontWeight: '700',
+  foodStatPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  foodStatText: {
+    fontSize: 12,
+    fontWeight: '800',
   },
   exerciseCard: {
     borderRadius: 20,
@@ -232,5 +285,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 16,
     right: 16,
+  },
+  logItemTime: {
+    fontSize: 12,
   }
 });

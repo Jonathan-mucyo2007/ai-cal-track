@@ -1,6 +1,10 @@
 ## Firebase Functions Setup
 
-This backend moves AI provider keys and FatSecret credentials out of the Expo client and into Firebase Functions.
+This backend moves AI provider keys out of the Expo client and into Firebase Functions.
+
+Important:
+- Run Firebase commands from [functions](d:/calori/ai-cal-track/functions), because that folder contains the deploy config.
+- The live backend entry file is [index.js](d:/calori/ai-cal-track/functions/index.js). The scaffolded `functions/functions/` folder is not the backend you want to deploy.
 
 ### 1. Install tooling
 
@@ -12,7 +16,7 @@ npm install
 
 ### 2. Log in and initialize Firebase functions
 
-From the project root:
+From the `functions` folder:
 
 ```bash
 firebase login
@@ -32,11 +36,9 @@ If Firebase creates files that overlap with this folder, keep the code in this `
 firebase functions:secrets:set OPENAI_API_KEY
 firebase functions:secrets:set GEMINI_API_KEY
 firebase functions:secrets:set ANTHROPIC_API_KEY
-firebase functions:secrets:set FATSECRET_CLIENT_ID
-firebase functions:secrets:set FATSECRET_CLIENT_SECRET
 ```
 
-Only set the providers you actually want to use, but set both FatSecret secrets if you want food search to work.
+Only set the providers you actually want to use.
 
 ### 4. Deploy
 
@@ -51,7 +53,6 @@ Add this to the root `.env`:
 
 ```bash
 EXPO_PUBLIC_AI_COACH_ENDPOINT=https://us-central1-jonathan2026-eb182.cloudfunctions.net/generateAiCoachLayer
-EXPO_PUBLIC_FATSECRET_SEARCH_ENDPOINT=https://us-central1-jonathan2026-eb182.cloudfunctions.net/searchFatSecretFoods
 ```
 
 Then restart Expo.
@@ -60,5 +61,5 @@ Then restart Expo.
 
 - The backend caches AI coach responses in Firestore under `aiCoachCache`.
 - Provider attempts are logged in `aiCoachLogs`.
-- FatSecret food search must go through the backend because direct mobile requests can be rejected by FatSecret with IP validation errors.
+- Food search is now handled by the separate Vercel USDA proxy, not by Firebase Functions.
 - The mobile app still works without the AI coach backend by falling back to local coaching text, but production should use the backend endpoint.

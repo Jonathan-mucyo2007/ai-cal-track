@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Image, KeyboardAvoidingView, 
 import { useSignIn, useSignUp, useOAuth } from '@clerk/clerk-expo';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 import { User, Mail, Lock } from 'lucide-react-native';
 import { useWarmUpBrowser } from '../../hooks/useWarmUpBrowser';
 import { AuthInput } from '../../components/ui/AuthInput';
@@ -33,6 +34,7 @@ export default function AuthScreen() {
   const [code, setCode] = useState('');
 
   const { startOAuthFlow } = useOAuth({ strategy: 'oauth_google' });
+  const oauthRedirectUrl = Linking.createURL('/sso-callback');
 
   useEffect(() => {
     setIsFlipped(mode === 'signup');
@@ -69,7 +71,7 @@ export default function AuthScreen() {
       
       if (completeSignIn.status === 'complete') {
         await setSignInActive({ session: completeSignIn.createdSessionId });
-        // The Root layout observer (_layout.tsx) will automatically route to '/' or '/onboarding'
+        router.replace('/');
       } else {
         Alert.alert("Sign In Incomplete", "Further action required (e.g. 2FA).");
       }
@@ -112,6 +114,7 @@ export default function AuthScreen() {
         const userId = completeSignUp.createdUserId!;
         await saveUserToFirebase(userId, emailAddress, firstName, lastName);
         await setSignUpActive({ session: completeSignUp.createdSessionId });
+        router.replace('/');
       }
     } catch (err: any) {
       Alert.alert('Verification Failed', err.errors ? err.errors[0].message : err.message);
@@ -122,7 +125,9 @@ export default function AuthScreen() {
 
   const onSelectAuthGoogle = async () => {
     try {
-      const { createdSessionId, setActive: setOAuthActive, signUp } = await startOAuthFlow();
+      const { createdSessionId, setActive: setOAuthActive, signUp } = await startOAuthFlow({
+        redirectUrl: oauthRedirectUrl,
+      });
       if (createdSessionId && setOAuthActive) {
         if (signUp?.createdUserId) {
           let fName = signUp.firstName || '';
@@ -131,9 +136,11 @@ export default function AuthScreen() {
           await saveUserToFirebase(signUp.createdUserId, email, fName, lName);
         }
         await setOAuthActive({ session: createdSessionId });
+        router.replace('/');
       }
     } catch (err) {
       console.error('OAuth error', err);
+      Alert.alert('Google Sign-In Failed', 'Could not complete Google sign-in. Please try again.');
     }
   };
 

@@ -12,6 +12,14 @@ import { useSafeBack } from '../hooks/useSafeBack';
 
 const INTENSITIES = ['Low', 'Medium', 'High'];
 const DURATIONS = ['15', '30', '60', '90'];
+const MAX_DURATION_MINS = 300;
+
+const sanitizeDurationInput = (value: string) => {
+  const digitsOnly = value.replace(/[^\d]/g, '').slice(0, 3);
+  if (!digitsOnly) return '';
+  const parsed = Number(digitsOnly);
+  return String(Math.min(parsed, MAX_DURATION_MINS));
+};
 
 export default function WorkoutDetails() {
   const router = useRouter();
@@ -28,6 +36,8 @@ export default function WorkoutDetails() {
   const [intensity, setIntensity] = useState('Medium');
   const [duration, setDuration] = useState('30');
   const [profile, setProfile] = useState<UserProfileCache | null>(null);
+  const durationMins = Math.min(Math.max(parseInt(duration, 10) || 0, 0), MAX_DURATION_MINS);
+  const estimatedCalories = workoutMathService.calculateCaloriesBurned(profile, title, intensity, durationMins || 1);
 
   React.useEffect(() => {
     storageService.loadUserProfile().then(p => setProfile(p));
@@ -45,7 +55,9 @@ export default function WorkoutDetails() {
 
   const handleContinue = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    const durationMins = parseInt(duration, 10) || 0;
+    if (durationMins <= 0) {
+      return;
+    }
     const caloriesBurned = workoutMathService.calculateCaloriesBurned(profile, title, intensity, durationMins);
     
     router.push({
@@ -160,10 +172,20 @@ export default function WorkoutDetails() {
                 placeholder="0"
                 placeholderTextColor={theme.textSecondary}
                 value={duration}
-                onChangeText={setDuration}
+                onChangeText={(value) => setDuration(sanitizeDurationInput(value))}
                 maxLength={3}
               />
               <Text style={[styles.inputSuffix, { color: theme.textSecondary }]}>mins</Text>
+            </View>
+
+            <View style={[styles.estimateBanner, { backgroundColor: theme.background }]}>
+              <Text style={[styles.estimateTitle, { color: theme.text }]}>Estimated Burn</Text>
+              <Text style={[styles.estimateValue, { color: themeColor }]}>
+                {durationMins > 0 ? `${estimatedCalories} kcal` : 'Add duration'}
+              </Text>
+              <Text style={[styles.estimateSubtitle, { color: theme.textSecondary }]}>
+                Based on your saved body weight, workout type, intensity, and duration.
+              </Text>
             </View>
           </Animated.View>
 
@@ -174,6 +196,7 @@ export default function WorkoutDetails() {
             style={[styles.continueButton, { backgroundColor: theme.primary }]}
             onPress={handleContinue}
             activeOpacity={0.8}
+            disabled={durationMins <= 0}
           >
             <Text style={styles.continueButtonText}>Continue</Text>
             <Ionicons name="arrow-forward" size={20} color="#FFF" />
@@ -314,6 +337,30 @@ const styles = StyleSheet.create({
   },
   inputSuffix: {
     fontSize: 16,
+    fontWeight: '600',
+  },
+  estimateBanner: {
+    marginTop: 18,
+    borderRadius: 18,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+  },
+  estimateTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginBottom: 6,
+  },
+  estimateValue: {
+    fontSize: 30,
+    fontWeight: '900',
+    letterSpacing: -0.8,
+    marginBottom: 6,
+  },
+  estimateSubtitle: {
+    fontSize: 13,
+    lineHeight: 18,
     fontWeight: '600',
   },
   footer: {

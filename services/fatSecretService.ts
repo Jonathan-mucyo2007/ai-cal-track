@@ -10,7 +10,7 @@ export class FoodSearchError extends Error {
   }
 }
 
-const FATSECRET_SEARCH_ENDPOINT = process.env.EXPO_PUBLIC_FATSECRET_SEARCH_ENDPOINT;
+const FOOD_SEARCH_ENDPOINT = process.env.EXPO_PUBLIC_FATSECRET_SEARCH_ENDPOINT;
 
 export interface FoodSearchResult {
   food_id: string;
@@ -21,18 +21,19 @@ export interface FoodSearchResult {
   food_url: string;
 }
 
-export const fatSecretService = {
+export const foodSearchService = {
   async searchFood(query: string): Promise<FoodSearchResult[]> {
     if (query.trim().length < 3) {
       return [];
     }
 
-    if (!FATSECRET_SEARCH_ENDPOINT) {
+    if (!FOOD_SEARCH_ENDPOINT) {
+      console.warn('EXPO_PUBLIC_FATSECRET_SEARCH_ENDPOINT is not set. Using local food search fallback.');
       return localFoodSearchService.search(query);
     }
 
     try {
-      const response = await fetch(FATSECRET_SEARCH_ENDPOINT, {
+      const response = await fetch(FOOD_SEARCH_ENDPOINT, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -46,12 +47,8 @@ export const fatSecretService = {
       const data = await response.json().catch(() => null);
 
       if (!response.ok) {
-        if (response.status >= 500 || response.status === 404) {
-          return localFoodSearchService.search(query);
-        }
-
         throw new FoodSearchError(
-          data?.message || `FatSecret search failed with status ${response.status}.`,
+          data?.message || `Food search failed with status ${response.status}.`,
           data?.code
         );
       }
@@ -67,8 +64,8 @@ export const fatSecretService = {
         throw error;
       }
 
-      console.error('FatSecret search failed, falling back to local search', error);
-      return localFoodSearchService.search(query);
+      console.error('Food search failed', error);
+      throw new FoodSearchError('Unable to reach the food search service right now.');
     }
   }
 };

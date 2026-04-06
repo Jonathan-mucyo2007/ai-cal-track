@@ -124,14 +124,15 @@ export default function Onboarding() {
       setProgress(97);
 
       const fullProfile = {
+        userId: user?.id || '',
+        firstName: user?.firstName || '',
+        lastName: user?.lastName || '',
+        email: user?.primaryEmailAddress?.emailAddress || '',
         ...profileUpdates,
         nutritionPlan: plan,
       };
 
-      const savedProfile = await storageService.updateUserProfile(fullProfile);
-      if (!savedProfile) {
-        throw new Error('Unable to save the AI plan locally because the base user profile is missing.');
-      }
+      await storageService.saveUserProfile(fullProfile);
 
       if (user?.id) {
         const userRef = doc(db, 'users', user.id);

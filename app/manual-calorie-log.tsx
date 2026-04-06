@@ -39,7 +39,7 @@ export default function ManualCalorieLog() {
         Alert.alert(
           "Calories Logged!",
           `Successfully logged ${calories} kcal.`,
-          [{ text: "Awesome!", onPress: () => router.replace('/') }]
+          [{ text: "Awesome!", onPress: () => router.replace('/(tabs)') }]
         );
       } catch {
         Alert.alert("Error", "Could not log calories. Please try again.");
@@ -85,7 +85,7 @@ export default function ManualCalorieLog() {
               maxLength={4}
               autoFocus={true}
             />
-            <Text style={[styles.metricSuffix, { color: theme.primary }]}>CAL</Text>
+            <Text style={[styles.metricSuffix, { color: theme.primary }]}>kcal</Text>
           </Animated.View>
 
         </ScrollView>

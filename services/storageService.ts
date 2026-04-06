@@ -14,6 +14,13 @@ export interface UserProfileCache {
   birthdate?: string; // ISO string form
   height?: { value: number; unit: 'feet' | 'cm' };
   weight?: { value: number; unit: 'kg' | 'lbs' };
+  weightUpdatedAt?: string;
+  weightHistory?: {
+    value: number;
+    unit: 'kg' | 'lbs';
+    recordedAt: string;
+    dateLabel: string;
+  }[];
   onboardingCompleted?: boolean;
   nutritionPlan?: NutritionPlanCache;
 }
@@ -84,6 +91,14 @@ export const isUserProfileComplete = (profile?: UserProfileCache | null) =>
     profile.birthdate &&
     profile.height?.value &&
     profile.weight?.value &&
+    profile.onboardingCompleted &&
+    isNutritionPlanComplete(profile.nutritionPlan)
+  );
+
+export const isUserAppReady = (profile?: UserProfileCache | null) =>
+  Boolean(
+    profile &&
+    profile.userId &&
     profile.onboardingCompleted &&
     isNutritionPlanComplete(profile.nutritionPlan)
   );

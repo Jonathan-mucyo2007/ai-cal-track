@@ -10,8 +10,6 @@ admin.initializeApp();
 const openAiApiKey = defineSecret('OPENAI_API_KEY');
 const geminiApiKey = defineSecret('GEMINI_API_KEY');
 const anthropicApiKey = defineSecret('ANTHROPIC_API_KEY');
-const fatSecretClientId = defineSecret('FATSECRET_CLIENT_ID');
-const fatSecretClientSecret = defineSecret('FATSECRET_CLIENT_SECRET');
 
 const db = admin.firestore();
 
@@ -183,84 +181,6 @@ const requestAnthropic = async () => {
   return null;
 };
 
-let fatSecretTokenCache = {
-  token: null,
-  expiresAt: 0,
-};
-
-const getFatSecretAccessToken = async () => {
-  if (fatSecretTokenCache.token && Date.now() < fatSecretTokenCache.expiresAt) {
-    return fatSecretTokenCache.token;
-  }
-
-  const clientId = fatSecretClientId.value();
-  const clientSecret = fatSecretClientSecret.value();
-
-  if (!clientId || !clientSecret) {
-    throw new Error('FatSecret secrets are not configured on the server.');
-  }
-
-  const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
-  const response = await fetchWithRetry('https://oauth.fatsecret.com/connect/token', {
-    method: 'POST',
-    headers: {
-      Authorization: `Basic ${credentials}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: 'grant_type=client_credentials&scope=basic',
-  });
-
-  const body = await response.text();
-  if (!response.ok) {
-    throw new Error(`FatSecret auth failed: ${response.status} ${body}`);
-  }
-
-  const payload = JSON.parse(body);
-  fatSecretTokenCache = {
-    token: payload.access_token,
-    expiresAt: Date.now() + Math.max((Number(payload.expires_in) - 300) * 1000, 60_000),
-  };
-
-  return fatSecretTokenCache.token;
-};
-
-const searchFatSecretFoods = async (query, maxResults = 10) => {
-  const token = await getFatSecretAccessToken();
-  const params = new URLSearchParams({
-    method: 'foods.search',
-    search_expression: query,
-    format: 'json',
-    max_results: String(maxResults),
-  });
-
-  const response = await fetchWithRetry(
-    `https://platform.fatsecret.com/rest/server.api?${params.toString()}`,
-    {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/json',
-      },
-    }
-  );
-
-  const body = await response.text();
-  if (!response.ok) {
-    throw new Error(`FatSecret search failed: ${response.status} ${body}`);
-  }
-
-  const payload = JSON.parse(body);
-
-  if (payload.error) {
-    const message = payload.error.message || 'FatSecret returned an unknown error.';
-    const error = new Error(message);
-    error.code = payload.error.code;
-    throw error;
-  }
-
-  return payload;
-};
-
 exports.generateAiCoachLayer = onRequest(
   {
     region: 'us-central1',
@@ -351,41 +271,6 @@ exports.generateAiCoachLayer = onRequest(
     } catch (error) {
       logger.error('generateAiCoachLayer failed', error);
       response.status(500).send(error instanceof Error ? error.message : 'Unknown server error.');
-    }
-  }
-);
-
-exports.searchFatSecretFoods = onRequest(
-  {
-    region: 'us-central1',
-    cors: true,
-    secrets: [fatSecretClientId, fatSecretClientSecret],
-    timeoutSeconds: 60,
-    memory: '256MiB',
-  },
-  async (request, response) => {
-    if (request.method !== 'POST') {
-      response.status(405).json({ message: 'Method Not Allowed' });
-      return;
-    }
-
-    const query = String(request.body?.query || '').trim();
-    const maxResults = Math.min(Math.max(Number(request.body?.maxResults) || 10, 1), 20);
-
-    if (query.length < 3) {
-      response.status(400).json({ message: 'Query must be at least 3 characters long.' });
-      return;
-    }
-
-    try {
-      const results = await searchFatSecretFoods(query, maxResults);
-      response.status(200).json(results);
-    } catch (error) {
-      logger.error('searchFatSecretFoods failed', error);
-      response.status(502).json({
-        message: error instanceof Error ? error.message : 'Unknown FatSecret error.',
-        code: typeof error?.code === 'number' ? error.code : undefined,
-      });
     }
   }
 );

@@ -45,7 +45,7 @@ export default function WorkoutSummary() {
       await logsService.addExerciseLog(userId, selectedDate, title, caloriesBurned, duration, intensity);
       setIsLogging(false);
     }
-    router.replace('/');
+    router.replace('/(tabs)');
   };
 
   return (
@@ -71,7 +71,7 @@ export default function WorkoutSummary() {
           <Text style={[styles.title, { color: theme.textSecondary }]}>Your Workout Burned</Text>
           <View style={styles.calorieRow}>
             <Text style={[styles.calories, { color: theme.text }]}>{caloriesBurned}</Text>
-            <Text style={[styles.unit, { color: themeColor }]}>cals</Text>
+            <Text style={[styles.unit, { color: themeColor }]}>kcal</Text>
           </View>
         </Animated.View>
       </View>

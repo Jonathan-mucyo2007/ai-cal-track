@@ -16,6 +16,7 @@ import { db } from '../../config/firebase';
 import { EditGoalsModal } from "../../components/home/EditGoalsModal";
 import { WaterCard } from "../../components/home/WaterCard";
 import { RecentActivity } from "../../components/home/RecentActivity";
+import { userProfileService } from "../../services/userProfileService";
 
 export default function HomeDashboard() {
   const { signOut } = useAuth();
@@ -36,6 +37,18 @@ export default function HomeDashboard() {
       }
     });
   }, [user]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const unsubscribe = userProfileService.subscribeToUserProfile(user.id, (profile) => {
+      if (profile) {
+        setOfflineProfile(profile as UserProfileCache);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [user?.id]);
 
   // Real-time listener for the currently selected date's logs
   useEffect(() => {
@@ -118,6 +131,8 @@ export default function HomeDashboard() {
         <CaloriesCard 
           remainingCalories={remainingCal}
           totalCalories={totalCal}
+          consumedCalories={consumedCal}
+          burnedCalories={burnedCal}
           macros={macros}
           onEditPress={() => setIsEditModalVisible(true)}
         />
